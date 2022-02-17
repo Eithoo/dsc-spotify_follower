@@ -1,0 +1,17 @@
+{
+  "name": "dsc-spotify_follower",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Eitho",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "discord-music-player": "^8.3.1",
+    "discord.js": "^13.6.0",
+    "sqlite": "^4.0.23",
+    "sqlite3": "^5.0.2"
+  }
+}
