@@ -25,7 +25,8 @@ const config = {
 	supportServer: {
 		server: '943239225841700894',
 		logsChannel: '943549793039421572',
-		errorsChannel: '943999794991472650'
+		guildsErrorsChannel: '943999794991472650',
+		errorsChannel: '944306320612417566'
 	}
 }
 
