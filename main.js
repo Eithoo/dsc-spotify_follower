@@ -3,7 +3,7 @@ const config = require('./config.js');
 const { inspect } = require('util');
 const Discord = require('discord.js');
 const bot = new Discord.Client({
-    intents: [Discord.Intents.FLAGS.GUILDS, Discord.Intents.FLAGS.GUILD_MESSAGES, Discord.Intents.FLAGS.GUILD_INTEGRATIONS, Discord.Intents.FLAGS.GUILD_VOICE_STATES],
+    intents: [Discord.Intents.FLAGS.GUILDS, Discord.Intents.FLAGS.GUILD_MESSAGES, Discord.Intents.FLAGS.GUILD_MEMBERS, Discord.Intents.FLAGS.GUILD_INTEGRATIONS, Discord.Intents.FLAGS.GUILD_VOICE_STATES],
 	ws: {
 		properties: {
 			$browser: 'Discord iOS'
@@ -109,6 +109,15 @@ bot.on('ready', async () => {
 
 bot.on('interactionCreate', async interaction => {
 	if ( !(interaction.isCommand() || interaction.isContextMenu() || interaction.isButton() || interaction.isSelectMenu() || interaction.isAutocomplete() ) ) return;
+	if (!interaction.inGuild()) {
+		const lang = {
+			pl: ['Nie działam na DM!', 'Odpowiadanie na DM zostało celowo wyłączone. Jeśli chcesz  uzyskać pomocy, dołącz do serwera support - link jest w opisie bota.'],
+			en: ['It won\'t work in here!', 'If you need help with the bot, join support server - invite is in **About Me**.']
+		}
+		const text = interaction.locale == 'pl' ? lang.pl : lang.en;
+		const embed = embeds.error(text[0], text[1], config.colors.orange);
+		return interaction.reply({ embeds: [embed] });
+	}
 	let commandName = interaction.commandName;
 	if (interaction.isButton() || interaction.isSelectMenu()) {
 		commandName = interaction.customId.split('__')[0];
@@ -125,8 +134,8 @@ bot.on('interactionCreate', async interaction => {
 		}
 	} catch (error) {
 		console.error(error);
-		return interaction.reply({ content: 'Wystąpił nieznany błąd podczas wykonywania tej komendy. Jeśli błąd się powtarza, zgłoś to do twórcy bota.', ephemeral: true });
-		// tutaj zobaczyc w dokumentacji jak działają te locales i zrobić polską wersje (dla locale PL) i angielską (dla kazdego innego)
+		const content = interaction.locale == 'pl' ? 'Wystąpił nieznany błąd podczas wykonywania tej komendy. Jeśli błąd się powtarza, zgłoś to do twórcy bota.' : 'An unknown error occurred while executing this command. If the bug persists, please report it to the bot developer.'
+		return interaction.reply({ content: content, ephemeral: true });
 	}
 });
 
