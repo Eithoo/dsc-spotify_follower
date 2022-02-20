@@ -1,7 +1,7 @@
 const secret = require('./config-secret.js');
 const config = {
 	...secret,
-	prefix: '!',
+	prefix: '!', // disabled
 	creators: ['358259479525195776'],
 	colors: {
 		blue: '#1E90FF',
@@ -26,7 +26,8 @@ const config = {
 		server: '943239225841700894',
 		logsChannel: '943549793039421572',
 		guildsErrorsChannel: '943999794991472650',
-		errorsChannel: '944306320612417566'
+		errorsChannel: '944306320612417566',
+		invite: 'https://discord.gg/4YYd3NASjv',
 	}
 }
 

@@ -1,6 +1,7 @@
 const config = require('./config.js');
 const colors = config.colors;
 const Discord = require('discord.js');
+const { formatTime } = require('./utils.js');
 
 let embeds = {};
 embeds.basic = (title, content, color, authorimage) => {
@@ -35,6 +36,25 @@ embeds.question = (title, content, color, icon = 'orange') => {
 		.setColor(color || colors.yellow)
 		.setAuthor({ name: title, iconURL: icon == 'orange' ? config.embedImages.questionOrange : config.embedImages.questionBlue })
 		.setDescription(content);
+	return embed;
+}
+
+embeds.noPermissions = (command, args) => {
+	let embed = new Discord.MessageEmbed()
+		.setColor(colors.red)
+		.setAuthor({ name: 'Brak uprawnień', iconURL: config.embedImages.error })
+		.setDescription(`Nie posiadasz uprawnień do wykonania komendy \`${command}${args ? ' ' + args : ''}\`.`)
+		.setTimestamp()
+	return embed;
+}
+
+embeds.syntaxError = (command, ...usage) => {
+	const usageArr = usage.map(elem => `${config.prefix}${command} \`${elem}\``);
+	let embed = new Discord.MessageEmbed()
+		.setColor(colors.red)
+		.setAuthor({ name: 'Błąd składni', iconURL: config.embedImages.error })
+		.setDescription(`Składnia komendy: \n${usageArr.join('\n')}`)
+		.setTimestamp();
 	return embed;
 }
 
@@ -90,7 +110,7 @@ embeds.guildDelete = async guild => {
 	return embed;
 }
 
-embeds.noPermissions = (guild, permission) => {
+embeds.noServerPermissions = (guild, permission) => {
 	let embed = new Discord.MessageEmbed()
 		.setColor(colors.paleRed)
 		.setAuthor({ name: 'Brak uprawnień', iconURL: config.embedImages.error })
@@ -124,8 +144,7 @@ embeds.guildAvatarChange = (oldGuild, newGuild) => {
 embeds.ping = {};
 embeds.ping.firstCall = async message => {
 	if (!message) return false;
-	const bot = message.client;
-	return await embeds.send.basicInChannel(bot, message.channel.id, 'Ping', ':clock3: Trwa sprawdzanie pingu...', colors.white, config.embedImages.hourGlass);
+	return await message.reply({ embeds: [embeds.basic('Ping', ':clock3: Trwa sprawdzanie pingu...', colors.white, config.embedImages.hourGlass)] });
 }
 
 embeds.ping.result = (userMessage, botMessage) => {

@@ -3,7 +3,10 @@ const config = require('./config.js');
 const { inspect } = require('util');
 const Discord = require('discord.js');
 const bot = new Discord.Client({
-    intents: [Discord.Intents.FLAGS.GUILDS, Discord.Intents.FLAGS.GUILD_MESSAGES, Discord.Intents.FLAGS.GUILD_MEMBERS, Discord.Intents.FLAGS.GUILD_INTEGRATIONS, Discord.Intents.FLAGS.GUILD_VOICE_STATES],
+    intents: [Discord.Intents.FLAGS.GUILDS, Discord.Intents.FLAGS.GUILD_MESSAGES, Discord.Intents.FLAGS.GUILD_INTEGRATIONS, Discord.Intents.FLAGS.GUILD_VOICE_STATES, Discord.Intents.FLAGS.DIRECT_MESSAGES,
+	
+	Discord.Intents.FLAGS.GUILD_MEMBERS], // <-- just for now, remove it later
+    partials: ['CHANNEL'], // Required to receive DMs
 	ws: {
 		properties: {
 			$browser: 'Discord iOS'
@@ -14,6 +17,7 @@ let commands;
 const embeds = require('./embeds.js');
 const sqlite3 = require('sqlite3');
 const sqlite = require('sqlite');
+let traditionalCommands;
 
 const { Player } = require('discord-music-player');
 const player = new Player(bot, {
@@ -21,7 +25,8 @@ const player = new Player(bot, {
 });
 bot.musicPlayer = player;
 
-async function sendCommandsToDiscord() {
+bot.specialFunctions = {};
+bot.specialFunctions.sendCommandsToDiscord = async () => {
 	const globalCommandsAPI = [];
 	const globalCommandsFileNames = [];
 	const supportServerCommandsAPI = [];
@@ -63,6 +68,15 @@ async function sendCommandsToDiscord() {
 	return { global: globalCommandsFileNames, supportServer: supportServerFileNames };
 }
 
+bot.specialFunctions.loadTraditionalCommands = () => {
+	if (traditionalCommands !== undefined) 
+		bot.removeListener('messageCreate', traditionalCommands);
+	delete require.cache[require.resolve('./commands/traditional.js')];
+	traditionalCommands = require('./commands/traditional.js');
+	bot.on('messageCreate', traditionalCommands);
+	console.log('✔ załadowano plik komend tradycyjnych: traditional.js');
+}
+
 function updateActivity() {
 	const guildsCount = bot.guilds.cache.size;
 	const totalMembersCount = bot.guilds.cache.reduce((accumulator, guild) => accumulator + guild.memberCount, 0);
@@ -100,11 +114,12 @@ bot.on('ready', async () => {
 		bot.supportServer.channels.errors.send({ embeds: [embed]});
 		return false;
 	}
-	sendCommandsToDiscord().then(commandsFileNames => {
+	bot.specialFunctions.sendCommandsToDiscord().then(commandsFileNames => {
 		console.log('✔ Komendy załadowane.');
 		const embed = embeds.commandsLoaded(commandsFileNames.global, commandsFileNames.supportServer);
 		bot.supportServer.channels.logs.send({ embeds: [embed] });
-	})
+	});
+	bot.specialFunctions.loadTraditionalCommands();
 });
 
 bot.on('interactionCreate', async interaction => {
@@ -158,7 +173,7 @@ bot.on('guildCreate', async guild => {
 		}
 	} else {
 		user = await guild.fetchOwner();
-		bot.supportServer.channels.guildsErrors.send({ embeds: [embeds.noPermissions(guild, 'VIEW_AUDIT_LOGS')] })
+		bot.supportServer.channels.guildsErrors.send({ embeds: [embeds.noServerPermissions(guild, 'VIEW_AUDIT_LOGS')] })
 	}
 
 	console.log(`✔ Bot został dodany do nowego serwera: ${guild.name} przez ${user.tag}`);
@@ -182,7 +197,7 @@ bot.on('guildUpdate', async (oldGuild, newGuild) => {
 		bot.supportServer.channels.logs.send({ embeds: [embeds.guildNameChange(oldGuild, newGuild)] });
 	if (oldGuild.icon != newGuild.icon)
 		bot.supportServer.channels.logs.send({ embeds: [embeds.guildAvatarChange(oldGuild, newGuild)] });
-})
+});
 // zapytania w bazie zrobic w osobnym module
 
 bot.login(config.token);
