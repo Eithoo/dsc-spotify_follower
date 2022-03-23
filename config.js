@@ -12,7 +12,8 @@ const config = {
 		red: '#C72222',
 		paleRed: '#CD5C5C',
 		white: '#FFFFFE',
-		yellow: '#FFFF00'
+		yellow: '#FFFF00',
+		discord: '#2f3136'
 	},
 	embedImages: {
 		success: 'https://i.imgur.com/ATS5JiO.png',
@@ -27,6 +28,7 @@ const config = {
 		logsChannel: '943549793039421572',
 		guildsErrorsChannel: '943999794991472650',
 		errorsChannel: '944306320612417566',
+		followLogsChannel: '954107775426916352',
 		invite: 'https://discord.gg/4YYd3NASjv',
 	}
 }

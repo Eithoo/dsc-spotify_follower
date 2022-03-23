@@ -1,7 +1,8 @@
 const config = require('./config.js');
 const colors = config.colors;
 const Discord = require('discord.js');
-const { formatTime } = require('./utils.js');
+const { formatTime, toHHMMSS } = require('./utils.js');
+const { inspect } = require('util');
 
 let embeds = {};
 embeds.basic = (title, content, color, authorimage) => {
@@ -138,6 +139,53 @@ embeds.guildAvatarChange = (oldGuild, newGuild) => {
 		.addField('**Nowy avatar**', newGuild.iconURL({ dynamic: true, size: 4096 }), true)
 		.addField('**ID**', newGuild.id)
 		.setImage(newGuild.iconURL({ dynamic: true, size: 4096 }));
+	return embed;
+}
+
+embeds.spotifyPresenceStart = (followedUser, commandUser, voiceChannel, spotify, forsingleserver) => {
+	const emojis = voiceChannel.client.supportServer.guild.emojis.cache;
+	const musicEmoji = emojis.find(emoji => emoji.name == 'music');
+	const timeEmoji = emojis.find(emoji => emoji.name == 'time');
+	const spotifyEmoji = emojis.find(emoji => emoji.name == 'spotify');
+	const youtubeEmoji = emojis.find(emoji => emoji.name == 'youtube');
+	const currentSeconds = Math.floor((new Date() - spotify.timestamps.start)/1000);
+	const totalSeconds = Math.floor((spotify.timestamps.end - spotify.timestamps.start)/1000);
+	const currentTime = toHHMMSS(currentSeconds);
+	const totalTime = toHHMMSS(totalSeconds);
+	const imageID = spotify.assets.largeImage.split(':')[1];
+	const imageURL = `https://i.scdn.co/image/${imageID}`;
+	const album = spotify.details != spotify.assets?.largeText ? `\n${musicEmoji} **Album:** ${spotify.assets?.largeText}` : '';
+	const texts = [
+		{user: 'Użytkownik', commandedby: 'Komenda wpisana przez', guild: 'Serwer', link: 'tu zaraz link'},
+		{user: 'User', commandedby: 'Command entered by', guild: 'Guild', link: 'link there but wait a second'}
+	];
+	const text = forsingleserver ? texts[1] : texts[0];
+	let embed = new Discord.MessageEmbed()
+		.setAuthor({ name: 'SPOTIFY', iconURL: followedUser.displayAvatarURL() })
+		.setColor(colors.blue)
+		.setDescription(`${musicEmoji} ${spotify.details} - ${spotify.state}${album}\n${timeEmoji} ${currentTime} / ${totalTime}\n${spotifyEmoji} ${Discord.Formatters.hyperlink('[link]', 'https://open.spotify.com/track/'+spotify.syncId, spotify.details)}\n${youtubeEmoji} [${text.link}]`)
+		.setImage(imageURL);
+	if (!forsingleserver || (forsingleserver && forsingleserver == 'logs')) {
+		embed
+			.addField(`**${text.user}**`, `<@${followedUser.id}> (${followedUser.tag})`)
+			.addField(`**${text.commandedby}**`, `<@${commandUser.id}> (${commandUser.user.tag})`);
+	}
+	if (!forsingleserver) embed.addField(`**${text.guild}**`, `${voiceChannel.guild.name}, \`#${voiceChannel.name}\``);
+	return embed;
+}
+
+embeds.jsError = (title = 'error', error, full) => {
+	if (full) { // nie pokazujemy całego błędu zwykłemu użytkownikowi
+		error = inspect(error);
+		if (error.length > 3700)
+			error = error.substr(0, 3700) + '...\n\n...wiadomość przekroczyła maksymalną ilość znaków i została ucięta...'
+	}
+	let embed = new Discord.MessageEmbed()
+		.setAuthor(title, config.embedImages.error)
+		.setTitle('Error')
+		.setColor(colors.paleRed)
+		.setDescription(`${Discord.Formatters.codeBlock('js', error)}${!full ? '\nFull error was sent to Support server.' : ''}`)
+		.setTimestamp()
 	return embed;
 }
 

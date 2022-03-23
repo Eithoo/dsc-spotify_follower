@@ -9,6 +9,13 @@ const { hasAdminPermissions } = require('../utils.js');
 async function execute(message) {
 	const bot = message.client;
 	if (message.author.bot) return;
+	////////////////////////////
+	if (message.content == 'x') {
+		await bot.specialFunctions.sendCommandsToDiscord();
+		message.reply('ok');
+		return;
+	}
+	////////////////////////////
 //	const prefix = config.prefix;
 	const prefix = `<@!${bot.user.id}>`;
 	if (message.channel.type === 'DM') {

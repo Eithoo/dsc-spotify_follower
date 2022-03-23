@@ -12,6 +12,7 @@
     "discord-music-player": "^8.3.1",
     "discord.js": "^13.6.0",
     "sqlite": "^4.0.23",
-    "sqlite3": "^5.0.2"
+    "sqlite3": "^5.0.2",
+    "ytdl-core": "^4.11.0"
   }
 }

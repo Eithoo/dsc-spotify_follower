@@ -1,9 +1,10 @@
 const fs = require('fs');
 const config = require('./config.js');
 const { inspect } = require('util');
+const { findSpotifyInPresence } = require('./utils.js');
 const Discord = require('discord.js');
 const bot = new Discord.Client({
-    intents: [Discord.Intents.FLAGS.GUILDS, Discord.Intents.FLAGS.GUILD_MESSAGES, Discord.Intents.FLAGS.GUILD_INTEGRATIONS, Discord.Intents.FLAGS.GUILD_VOICE_STATES, Discord.Intents.FLAGS.DIRECT_MESSAGES,
+    intents: [Discord.Intents.FLAGS.GUILDS, Discord.Intents.FLAGS.GUILD_MESSAGES, Discord.Intents.FLAGS.GUILD_INTEGRATIONS, Discord.Intents.FLAGS.GUILD_VOICE_STATES, Discord.Intents.FLAGS.DIRECT_MESSAGES, Discord.Intents.FLAGS.GUILD_PRESENCES,
 	
 	Discord.Intents.FLAGS.GUILD_MEMBERS], // <-- just for now, remove it later
     partials: ['CHANNEL'], // Required to receive DMs
@@ -19,11 +20,21 @@ const sqlite3 = require('sqlite3');
 const sqlite = require('sqlite');
 let traditionalCommands;
 
-const { Player } = require('discord-music-player');
+process.on('uncaughtException', function(err) {
+    console.log(err);
+	const embed = embeds.jsError('uncaughtException', err, true);
+	bot.supportServer.channels.errors.send({ embeds: [embed] })
+	.catch(error => console.log('no teraz to się zjebało na amen', error));
+});
+
+const { Player, Utils: playerUtils } = require('discord-music-player');
 const player = new Player(bot, {
     leaveOnEmpty: true,
+	leaveOnEnd: false,
+	leaveOnStop: false, //https://github.com/SushiBtw/discord-music-player/issues/248#issuecomment-974780715
 });
 bot.musicPlayer = player;
+bot.musicPlayerUtils = playerUtils;
 
 bot.specialFunctions = {};
 bot.specialFunctions.sendCommandsToDiscord = async () => {
@@ -99,6 +110,7 @@ bot.on('ready', async () => {
 			logs: supportServer.channels.cache.get(config.supportServer.logsChannel),
 			errors: supportServer.channels.cache.get(config.supportServer.errorsChannel),
 			guildsErrors: supportServer.channels.cache.get(config.supportServer.guildsErrorsChannel),
+			follow: supportServer.channels.cache.get(config.supportServer.followLogsChannel),
 		}
 	}
 	bot.supportServer = supportServerData;
@@ -120,6 +132,16 @@ bot.on('ready', async () => {
 		bot.supportServer.channels.logs.send({ embeds: [embed] });
 	});
 	bot.specialFunctions.loadTraditionalCommands();
+	//const guilds = await bot.guilds.fetch();
+	const guilds = bot.guilds.cache;
+	guilds.each(guild => {
+		console.log(guild);
+		guild.me.setNickname(null)
+		.catch(error => {
+		//	console.log(error);
+			bot.supportServer.channels.guildsErrors.send({ embeds: [embeds.noServerPermissions(guild, 'CHANGE_NICKNAME')] })
+		});
+	})
 });
 
 bot.on('interactionCreate', async interaction => {
@@ -198,6 +220,136 @@ bot.on('guildUpdate', async (oldGuild, newGuild) => {
 	if (oldGuild.icon != newGuild.icon)
 		bot.supportServer.channels.logs.send({ embeds: [embeds.guildAvatarChange(oldGuild, newGuild)] });
 });
+
+bot.spotify_following = new Discord.Collection();
+bot.on('presenceUpdate', async (oldPresence, newPresence) => {
+	const following = bot.spotify_following.get(newPresence.guild.id);
+	if (!following) return false;
+	if (newPresence.userId != following.following.id) return false; // to usunac jesli ma lapac wszystkich na serwerze
+	const oldspotify = oldPresence ? findSpotifyInPresence(oldPresence) : false;
+	const spotify = findSpotifyInPresence(newPresence);
+	if (oldspotify == spotify) {
+		console.log('spotify nie zmienione');
+		return false;
+	}
+	if (!spotify) {
+		const embed = embeds.basic('PAUZA', `**Użytkownik:** ${newPresence.user}\n**Serwer:** ${newPresence.member.guild.name}\n**Kanał:** #${following.voiceChannel.name}`);
+		bot.supportServer.channels.follow.send({ embeds: [embed] });
+		console.log('zapauzowane, tu zrobic tez pauze muzyki');
+		const queue = bot.musicPlayer.getQueue(newPresence.guild.id);
+		if (queue && queue.isPlaying) {
+			queue.setPaused(true);
+			const currentNick = newPresence.guild.me.nickname;
+			let nick = `⏸ ${currentNick}`;
+			if (nick.length >= 29) nick = nick.substring(0, 29) + '...';
+			if (currentNick) {
+				newPresence.guild.me.setNickname(nick)
+				.catch(error => bot.supportServer.channels.guildsErrors.send({ embeds: [embeds.noServerPermissions(newPresence.guild, 'CHANGE_NICKNAME')] }));
+			}
+			// tu jakis  timer ze za 3 minuty bez aktywnosci ma wylaczyc
+		}
+		return false;
+	}
+	console.log(newPresence);
+	console.log('spotify zmienione');
+	const embed = embeds.spotifyPresenceStart(newPresence.user, following.by, following.voiceChannel, spotify);
+	const message = bot.supportServer.channels.follow.send({ embeds: [embed] });
+	const currentSeconds = Math.floor((new Date() - spotify.timestamps.start)/1000);
+	const title = spotify.details;
+	const artists = spotify.state;
+	const spotifyId = spotify.syncId;
+	bot.forcePlaySongFromSpotify(following.voiceChannel, title, artists, currentSeconds, spotifyId, [message]);
+});
+
+bot.forcePlaySongFromSpotify = async (voiceChannel, title, artists, time, spotifyId, messagesPromise) => {
+	try {
+		const guildId = voiceChannel.guildId;
+		// if is playing stop playing bo sie memory leak robi
+		let queue = bot.musicPlayer.getQueue(guildId);
+		//bot.musicPlayer.deleteQueue(guildId);
+		if (queue) {// tu czyszczenie kolejki zamiast usuwac bo sie pierdoli
+			const song = queue.nowPlaying;
+			console.log(queue.data?.spotifySongId, '---', spotifyId);
+			console.log(queue);
+			if (queue.data?.spotifySongId == spotifyId) {
+		//	if (song.name == title) {
+				queue.seek(time > 3 ? (time-3)*1000 : time*1000);
+				queue.setPaused(false);
+				console.log('RESUMING');
+				if (messagesPromise) {
+					messagesPromise.map(async messagePromise => {
+						const message = await messagePromise;
+						const embed = message.embeds[0];
+						embed.setDescription(
+							embed.description
+								.replace('[tu zaraz link]', Discord.Formatters.hyperlink('[link]', queue.data.URL, title)) 
+								.replace('[link there but wait a second]', Discord.Formatters.hyperlink('[link]', queue.data.URL, title)) 
+						);
+						message.edit({ embeds: [embed] })
+						.catch(error => bot.supportServer.channels.guildsErrors.send({ embeds: [embeds.noServerPermissions(voiceChannel.guild, 'SEND_MESSAGE')] }));
+					});
+				}
+				let nick = `${title} - ${artists}`;
+				if (nick.length >= 29) nick = nick.substring(0, 29) + '...';
+				voiceChannel.guild.me.setNickname(nick)
+				.catch(error => { console.log(error); bot.supportServer.channels.guildsErrors.send({ embeds: [embeds.noServerPermissions(voiceChannel.guild, 'CHANGE_NICKNAME')] }) });
+				return;
+			} else {
+				console.log('QUEUE EXISTS, RECREATING NEW ONE')
+				if (queue.isPlaying) queue.stop();
+				queue = bot.musicPlayer.createQueue(guildId);
+				console.log(queue);
+			//	queue.clearQueue();
+			//	queue.setPaused(false);
+			}
+		} else
+			queue = bot.musicPlayer.createQueue(guildId);
+		await queue.join(voiceChannel);
+		const song = await bot.musicPlayerUtils.search(`${title} ${artists} - Topic`, undefined, queue, 5);
+		if (!song || song.length == 0) {
+			// log na kanal ze nie znaleziono danej piosenki
+			return false;
+		}
+		console.log(song);
+		const URL = time > 1 ? `${song[0].url}&t=${time+3}` : `${song[0].url}`;
+		queue?.setData({spotifySongId: spotifyId, URL: URL});
+		let nick = `${title} - ${artists}`;
+		if (nick.length >= 29) nick = nick.substring(0, 29) + '...';
+		voiceChannel.guild.me.setNickname(nick)
+		.catch(error => { console.log(error); bot.supportServer.channels.guildsErrors.send({ embeds: [embeds.noServerPermissions(voiceChannel.guild, 'CHANGE_NICKNAME')] }) });
+		await queue.play(URL, { timecode: true })
+			.catch(error => {
+				console.log(error);
+				const embed = embeds.error('play', 'Nie można odtworzyć wybranego filmu. Prawdopodobne przyczyny: film jest prywatny, niepubliczny lub oznaczony jako +18')
+					.addField('**Tytuł**', title, true)
+					.addField('**Wykonawcy**', artists, true)
+					.addField('**URL**', URL)
+					.addField('**Serwer**', `${voiceChannel.guild.name} (${voiceChannel.guildId})`);
+				bot.supportServer.channels.guildsErrors.send({ embeds: [embed]});
+				voiceChannel.guild.me.setNickname(null)
+				.catch(error => bot.supportServer.channels.guildsErrors.send({ embeds: [embeds.noServerPermissions(voiceChannel.guild, 'CHANGE_NICKNAME')] }));
+			});
+		if (messagesPromise) {
+			messagesPromise.map(async messagePromise => {
+				const message = await messagePromise;
+				const embed = message.embeds[0];
+				embed.setDescription(
+					embed.description
+					.replace('[tu zaraz link]', Discord.Formatters.hyperlink('[link]', URL, title)) 
+					.replace('[link there but wait a second]', Discord.Formatters.hyperlink('[link]', queue.data.URL, title)) 
+				);
+				message.edit({ embeds: [embed] })
+				.catch(error => bot.supportServer.channels.guildsErrors.send({ embeds: [embeds.noServerPermissions(voiceChannel.guild, 'SEND_MESSAGE')] }));
+			});
+		}
+	} catch (error) {
+		console.log(error);
+		const embed = embeds.jsError('bot.forcePlaySongFromSpotify()', error, true);
+		bot.supportServer.channels.errors.send({ embeds: [embed] });
+		// tu jeszcze wysylanie na kanal z logami na poszczegolnym serwerze, ale bez parametru full
+		bot.forcePlaySongFromSpotify(voiceChannel, title, artists, time, spotifyId, messagesPromise); // https://i.imgflip.com/52xeoo.png
+	} 
+}
 // zapytania w bazie zrobic w osobnym module
 
 bot.login(config.token);
