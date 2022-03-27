@@ -148,8 +148,9 @@ embeds.spotifyPresenceStart = (followedUser, commandUser, voiceChannel, spotify,
 	const timeEmoji = emojis.find(emoji => emoji.name == 'time');
 	const spotifyEmoji = emojis.find(emoji => emoji.name == 'spotify');
 	const youtubeEmoji = emojis.find(emoji => emoji.name == 'youtube');
-	const currentSeconds = Math.floor((new Date() - spotify.timestamps.start)/1000);
 	const totalSeconds = Math.floor((spotify.timestamps.end - spotify.timestamps.start)/1000);
+	let currentSeconds = Math.floor((new Date() - spotify.timestamps.start)/1000);
+	if (currentSeconds < 0 || currentSeconds > totalSeconds) currentSeconds = 0;
 	const currentTime = toHHMMSS(currentSeconds);
 	const totalTime = toHHMMSS(totalSeconds);
 	const imageID = spotify.assets.largeImage.split(':')[1];

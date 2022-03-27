@@ -51,8 +51,9 @@ module.exports = {
 		}
 		const imageID = spotify.assets.largeImage.split(':')[1];
 		const imageURL = `https://i.scdn.co/image/${imageID}`;
-		const currentSeconds = Math.floor((new Date() - spotify.timestamps.start)/1000);
 		const totalSeconds = Math.floor((spotify.timestamps.end - spotify.timestamps.start)/1000);
+		let currentSeconds = Math.floor((new Date() - spotify.timestamps.start)/1000);
+		if (currentSeconds < 0 || currentSeconds > totalSeconds) currentSeconds = 0;
 	//	const Xembed = embeds.success('git', `test\n\ntytuł: ${spotify.details}\nalbum: ${spotify.assets?.largeText}\nwykonawcy: ${spotify.state}\n\nczas:\nstart: ${spotify.timestamps.start}\nkoniec: ${spotify.timestamps.end}\nodtwarzanie: ${currentSeconds}s / ${totalSeconds}s`, config.colors.discord)
 	//	.setImage(imageURL);
 		interaction.client.spotify_following.set(interaction.guildId, {

@@ -256,7 +256,9 @@ bot.on('presenceUpdate', async (oldPresence, newPresence) => {
 	console.log('spotify zmienione');
 	const embed = embeds.spotifyPresenceStart(newPresence.user, following.by, following.voiceChannel, spotify);
 	const message = bot.supportServer.channels.follow.send({ embeds: [embed] });
-	const currentSeconds = Math.floor((new Date() - spotify.timestamps.start)/1000);
+	const totalSeconds = Math.floor((spotify.timestamps.end - spotify.timestamps.start)/1000);
+	let currentSeconds = Math.floor((new Date() - spotify.timestamps.start)/1000);
+	if (currentSeconds < 0 || currentSeconds > totalSeconds) currentSeconds = 0;
 	const title = spotify.details;
 	const artists = spotify.state;
 	const spotifyId = spotify.syncId;
