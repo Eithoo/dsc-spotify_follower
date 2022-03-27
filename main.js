@@ -228,6 +228,8 @@ bot.on('presenceUpdate', async (oldPresence, newPresence) => {
 	const following = bot.spotify_following.get(newPresence.guild.id);
 	if (!following) return false;
 	if (newPresence.userId != following.following.id) return false; // to usunac jesli ma lapac wszystkich na serwerze
+	if (oldPresence?.status != newPresence.status) return false; // tylko status sie zmienil
+	if (oldPresence?.clientStatus?.length != newPresence.clientStatus.length) return false;
 	const oldspotify = oldPresence ? findSpotifyInPresence(oldPresence) : false;
 	const spotify = findSpotifyInPresence(newPresence);
 	if (oldspotify == spotify) {
