@@ -35,6 +35,8 @@ const player = new Player(bot, {
 });
 bot.musicPlayer = player;
 bot.musicPlayerUtils = playerUtils;
+const genius_lyrics = require('genius-lyrics');
+bot.genius = new genius_lyrics.Client(config.genius_token);
 
 bot.specialFunctions = {};
 bot.specialFunctions.sendCommandsToDiscord = async () => {
@@ -261,7 +263,7 @@ bot.on('presenceUpdate', async (oldPresence, newPresence) => {
 	bot.forcePlaySongFromSpotify(following.voiceChannel, title, artists, currentSeconds, spotifyId, [message]);
 });
 
-bot.forcePlaySongFromSpotify = async (voiceChannel, title, artists, time, spotifyId, messagesPromise) => {
+bot.forcePlaySongFromSpotify = async (voiceChannel, title, artists, time, spotifyId, messagesPromise, donotrepeat) => {
 	try {
 		const guildId = voiceChannel.guildId;
 		// if is playing stop playing bo sie memory leak robi
@@ -287,6 +289,22 @@ bot.forcePlaySongFromSpotify = async (voiceChannel, title, artists, time, spotif
 						);
 						message.edit({ embeds: [embed] })
 						.catch(error => bot.supportServer.channels.guildsErrors.send({ embeds: [embeds.noServerPermissions(voiceChannel.guild, 'SEND_MESSAGE')] }));
+					});
+					bot.genius.songs.search(`${title} ${artists.split(';')[0]}`).then(async searches => {
+						if (!searches) return false;
+						const song = searches[0];
+						if (!song) return false;
+						const lyrics = await song.lyrics();
+						const geniusEmoji = bot.supportServer.guild.emojis.cache.find(emoji => emoji.name == 'genius');
+						messagesPromise.map(async messagePromise => {
+							const message = await messagePromise;
+							const embed = message.embeds[0];
+							embed.setDescription(
+								embed.description += `\n${geniusEmoji || '**GENIUS:** '} ${Discord.Formatters.hyperlink('[link]', song.url, 'GENIUS')}\n\n${lyrics.length > 1024 ? lyrics.substring(0,1024)+'...' : lyrics}`
+							);
+							message.edit({ embeds: [embed] })
+							.catch(error => bot.supportServer.channels.guildsErrors.send({ embeds: [embeds.noServerPermissions(voiceChannel.guild, 'SEND_MESSAGE')] }));
+						});
 					});
 				}
 				let nick = `${title} - ${artists}`;
@@ -341,13 +359,29 @@ bot.forcePlaySongFromSpotify = async (voiceChannel, title, artists, time, spotif
 				message.edit({ embeds: [embed] })
 				.catch(error => bot.supportServer.channels.guildsErrors.send({ embeds: [embeds.noServerPermissions(voiceChannel.guild, 'SEND_MESSAGE')] }));
 			});
+			bot.genius.songs.search(`${title} ${artists.split(';')[0]}`).then(async searches => {
+				if (!searches) return false;
+				const song = searches[0];
+				if (!song) return false;
+				const lyrics = await song.lyrics();
+				const geniusEmoji = bot.supportServer.guild.emojis.cache.find(emoji => emoji.name == 'genius');
+				messagesPromise.map(async messagePromise => {
+					const message = await messagePromise;
+					const embed = message.embeds[0];
+					embed.setDescription(
+						embed.description += `\n${geniusEmoji || '**GENIUS:** '} ${Discord.Formatters.hyperlink('[link]', song.url, 'GENIUS')}\n\n${lyrics.length > 1024 ? lyrics.substring(0,1024)+'...' : lyrics}`
+					);
+					message.edit({ embeds: [embed] })
+					.catch(error => bot.supportServer.channels.guildsErrors.send({ embeds: [embeds.noServerPermissions(voiceChannel.guild, 'SEND_MESSAGE')] }));
+				});
+			});
 		}
 	} catch (error) {
 		console.log(error);
 		const embed = embeds.jsError('bot.forcePlaySongFromSpotify()', error, true);
 		bot.supportServer.channels.errors.send({ embeds: [embed] });
 		// tu jeszcze wysylanie na kanal z logami na poszczegolnym serwerze, ale bez parametru full
-		bot.forcePlaySongFromSpotify(voiceChannel, title, artists, time, spotifyId, messagesPromise); // https://i.imgflip.com/52xeoo.png
+		if (!donotrepeat) bot.forcePlaySongFromSpotify(voiceChannel, title, artists, time, spotifyId, messagesPromise, true); // https://i.imgflip.com/52xeoo.png
 	} 
 }
 // zapytania w bazie zrobic w osobnym module
