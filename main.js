@@ -254,7 +254,6 @@ bot.on('presenceUpdate', async (oldPresence, newPresence) => {
 		}
 		return false;
 	}
-	console.log(newPresence);
 	console.log('spotify zmienione');
 	const embed = embeds.spotifyPresenceStart(newPresence.user, following.by, following.voiceChannel, spotify);
 	const message = bot.supportServer.channels.follow.send({ embeds: [embed] });
@@ -280,7 +279,11 @@ bot.forcePlaySongFromSpotify = async (voiceChannel, title, artists, time, spotif
 			if (queue.data?.spotifySongId == spotifyId) {
 		//	if (song.name == title) {
 				queue.seek(time > 3 ? (time-3)*1000 : time*1000);
-				queue.setPaused(false);
+				queue.setPaused(false).catch(error => {
+					queue?.setData({spotifySongId: false, URL: false});
+					bot.forcePlaySongFromSpotify(voiceChannel, title, artists, time, spotifyId, messagesPromise);
+					return false;
+				});
 				console.log('RESUMING');
 				if (messagesPromise) {
 					messagesPromise.map(async messagePromise => {
