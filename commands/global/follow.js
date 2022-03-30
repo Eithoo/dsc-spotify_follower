@@ -49,21 +49,15 @@ module.exports = {
 			const embed = embeds.error(translation[0], me ? translation[1] : translation[2], config.colors.yellow);
 			return interaction.reply({ embeds: [embed] });
 		}
-		const imageID = spotify.assets.largeImage.split(':')[1];
-		const imageURL = `https://i.scdn.co/image/${imageID}`;
 		const totalSeconds = Math.floor((spotify.timestamps.end - spotify.timestamps.start)/1000);
 		let currentSeconds = Math.floor((new Date() - spotify.timestamps.start)/1000);
 		if (currentSeconds < 0 || currentSeconds > totalSeconds) currentSeconds = 0;
-	//	const Xembed = embeds.success('git', `test\n\ntytuł: ${spotify.details}\nalbum: ${spotify.assets?.largeText}\nwykonawcy: ${spotify.state}\n\nczas:\nstart: ${spotify.timestamps.start}\nkoniec: ${spotify.timestamps.end}\nodtwarzanie: ${currentSeconds}s / ${totalSeconds}s`, config.colors.discord)
-	//	.setImage(imageURL);
 		interaction.client.spotify_following.set(interaction.guildId, {
 			following: member,
 			by: interaction.member,
 			on: new Date(),
 			voiceChannel: interaction.member.voice.channel
 		});
-
-	//	await interaction.channel.send({ content: `${member} test komendy`, embeds: [Xembed] });
 
 		const embed_support = embeds.spotifyPresenceStart(member.user, interaction.member, interaction.member.voice.channel, spotify);
 		const embed_reply = embeds.spotifyPresenceStart(member.user, interaction.member, interaction.member.voice.channel, spotify, true);

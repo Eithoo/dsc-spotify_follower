@@ -153,8 +153,8 @@ embeds.spotifyPresenceStart = (followedUser, commandUser, voiceChannel, spotify,
 	if (currentSeconds < 0 || currentSeconds > totalSeconds) currentSeconds = 0;
 	const currentTime = toHHMMSS(currentSeconds);
 	const totalTime = toHHMMSS(totalSeconds);
-	const imageID = spotify.assets.largeImage.split(':')[1];
-	const imageURL = `https://i.scdn.co/image/${imageID}`;
+	const imageID = spotify.assets.largeImage?.split(':')[1];
+	const imageURL = imageID ? `https://i.scdn.co/image/${imageID}` : false;
 	const album = spotify.details != spotify.assets?.largeText ? `\n${musicEmoji} **Album:** ${spotify.assets?.largeText}` : '';
 	const texts = [
 		{user: 'Użytkownik', commandedby: 'Komenda wpisana przez', guild: 'Serwer', link: 'tu zaraz link'},
@@ -164,8 +164,9 @@ embeds.spotifyPresenceStart = (followedUser, commandUser, voiceChannel, spotify,
 	let embed = new Discord.MessageEmbed()
 		.setAuthor({ name: 'SPOTIFY', iconURL: followedUser.displayAvatarURL() })
 		.setColor(colors.blue)
-		.setDescription(`${musicEmoji} ${spotify.details} - ${spotify.state}${album}\n${timeEmoji} ${currentTime} / ${totalTime}\n${spotifyEmoji} ${Discord.Formatters.hyperlink('[link]', 'https://open.spotify.com/track/'+spotify.syncId, spotify.details)}\n${youtubeEmoji} [${text.link}]`)
-		.setImage(imageURL);
+		.setDescription(`${musicEmoji} ${spotify.details} - ${spotify.state}${album}\n${timeEmoji} ${currentTime} / ${totalTime}\n${spotifyEmoji} ${Discord.Formatters.hyperlink('[link]', 'https://open.spotify.com/track/'+spotify.syncId, spotify.details)}\n${youtubeEmoji} [${text.link}]`);
+	if (imageURL) 
+		embed.setImage(imageURL);
 	if (!forsingleserver || (forsingleserver && forsingleserver == 'logs')) {
 		embed
 			.addField(`**${text.user}**`, `<@${followedUser.id}> (${followedUser.tag})`)
