@@ -56,7 +56,11 @@ module.exports = {
 			following: member,
 			by: interaction.member,
 			on: new Date(),
-			voiceChannel: interaction.member.voice.channel
+			voiceChannel: interaction.member.voice.channel,
+			textChannel: interaction.channel,
+			timeout: setTimeout(interaction.client.followTimeoutEnd, config.followTimeout, interaction.guildId),
+			finalTimeout: setTimeout(interaction.client.followTimeoutEnd, config.followTimeoutMAX, interaction.guildId, true),
+			lang: interaction.locale
 		});
 
 		const embed_support = embeds.spotifyPresenceStart(member.user, interaction.member, interaction.member.voice.channel, spotify);

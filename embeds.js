@@ -176,6 +176,37 @@ embeds.spotifyPresenceStart = (followedUser, commandUser, voiceChannel, spotify,
 	return embed;
 }
 
+embeds.followTimeoutEnd = (following, forSupportServer, final) => {
+	const texts = [
+		{
+			title: 'Following stopped',
+			desc: `Looks like you hit ${final ? 'max '+config.followTimeoutMAX/3_600_000+' hours continous usage' :  config.followTimeout/60000+ ' minutes inactivity'} limit.`,
+			channel: 'Channel',
+			user: 'User'
+		},
+		{
+			title: 'Śledzenie zatrzymane',
+			desc: `Wygląda na to, że przekroczono limit ${final ? 'max '+config.followTimeoutMAX/3_600_000+' godzin ciągłego używania' :  config.followTimeout/60000+ ' minut nieaktywności'}.`,
+			channel: 'Kanał',
+			user: 'Użytkownik'
+		}
+	];
+	const text = following.lang == 'pl' ? texts[1] : texts[0];
+	const guild = following.textChannel.guild;
+	let embed = new Discord.MessageEmbed()
+		.setColor(colors.discord)
+		.setAuthor({ name: text.title })
+		.setDescription(text.desc);
+	if (forSupportServer === true) {
+		embed.addField('**Serwer**', `${guild.name}, \`#${following.voiceChannel.name}\``);
+		embed.addField('**Użytkownik**',  `<@${following.following.id}> (${following.following.user.tag})`);
+	} else if (forSupportServer == 'guild') {
+		embed.addField(`**${text.channel}**`, `\`#${following.voiceChannel.name}\``);
+		embed.addField(`**${text.user}**`, `<@${following.following.id}> (${following.following.user.tag})`);
+	}
+	return embed;
+}
+
 embeds.jsError = (title = 'error', error, full) => {
 	if (full) { // nie pokazujemy całego błędu zwykłemu użytkownikowi
 		error = inspect(error);

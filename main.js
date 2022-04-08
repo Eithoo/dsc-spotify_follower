@@ -264,6 +264,7 @@ bot.on('presenceUpdate', async (oldPresence, newPresence) => {
 	const artists = spotify.state;
 	const spotifyId = spotify.syncId;
 	bot.forcePlaySongFromSpotify(following.voiceChannel, title, artists, currentSeconds, spotifyId, [message]);
+	following.timeout.refresh();
 });
 
 bot.forcePlaySongFromSpotify = async (voiceChannel, title, artists, time, spotifyId, messagesPromise, donotrepeat) => {
@@ -393,6 +394,33 @@ bot.forcePlaySongFromSpotify = async (voiceChannel, title, artists, time, spotif
 		// tu jeszcze wysylanie na kanal z logami na poszczegolnym serwerze, ale bez parametru full
 		if (!donotrepeat) bot.forcePlaySongFromSpotify(voiceChannel, title, artists, time, spotifyId, messagesPromise, true); // https://i.imgflip.com/52xeoo.png
 	} 
+}
+
+bot.followTimeoutEnd = async (guildId, final) => {
+	const following = bot.spotify_following.get(guildId);
+	if (!following) return false;
+	const guild = following.textChannel.guild;
+
+	const queue = bot.musicPlayer.getQueue(guildId);
+	if (queue) {
+		queue?.connection?.leave();
+		queue.stop();
+	}
+	guild.me.setNickname(null)
+	.catch(error => bot.supportServer.channels.guildsErrors.send({ embeds: [embeds.noServerPermissions(guild, 'CHANGE_NICKNAME')] }));
+
+	const embed_support = embeds.followTimeoutEnd(following, true, final);
+	bot.supportServer.channels.follow.send({ embeds: [embed_support] });
+	const embed_reply = embeds.followTimeoutEnd(following, false, final);
+	const isFollowedAndCommandedByUserTheSame = following.following.id == following.by.id;
+	const replyText = isFollowedAndCommandedByUserTheSame ? `${following.by}` : `${following.following}, ${following.by}`;
+	following.textChannel.send({ content: replyText, embeds: [embed_reply]  })
+		.catch(error => bot.supportServer.channels.guildsErrors.send({ embeds: [embeds.noServerPermissions(guild, 'SEND_MESSAGE')] }));
+	const embed_logs = embeds.followTimeoutEnd(following, 'logs', final);
+	// tutaj wysylanie na kanal z logami na danym serwerze
+
+
+	bot.spotify_following.delete(guildId); // na koncu
 }
 // zapytania w bazie zrobic w osobnym module
 

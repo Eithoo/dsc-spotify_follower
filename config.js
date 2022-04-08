@@ -3,6 +3,8 @@ const config = {
 	...secret,
 	prefix: '!', // disabled
 	creators: ['358259479525195776'],
+	followTimeout: 60_000 * 10, //8
+	followTimeoutMAX: 60_000 * 60 * 5,
 	colors: {
 		blue: '#1E90FF',
 		green: '#32CD32',
