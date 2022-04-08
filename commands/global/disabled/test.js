@@ -11,6 +11,7 @@ module.exports = {
 		.setDescription('asdfgh')
 	,
 	async execute(interaction) {
+		console.log(interaction.locale);
 		interaction.reply({ content: 'test komendy dostepnej globalnie' });
 
 	},
