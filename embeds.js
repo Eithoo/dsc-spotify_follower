@@ -60,9 +60,11 @@ embeds.syntaxError = (command, ...usage) => {
 }
 
 embeds.commandsLoaded = (global, supportServer) => {
-	let embed = embeds.success('Slash commands', 'Załadowano pliki komend.')
-		.addField('**GLOBALNE**', global.join('\n'), true)
-		.addField('**SUPPORT SERVER**', supportServer.join('\n'), true)
+	let embed = embeds.success('Slash commands', 'Załadowano pliki komend.');
+	if (global.length > 0)
+		embed.addField('**GLOBALNE**', global.join('\n'), true);
+	if (supportServer.length > 0)
+		embed.addField('**SUPPORT SERVER**', supportServer.join('\n'), true)
 	return embed;
 }
 

@@ -18,13 +18,18 @@ async function execute(message) {
 	////////////////////////////
 //	const prefix = config.prefix;
 	const prefix = `<@!${bot.user.id}>`;
+	const prefix2 = `<@${bot.user.id}>`;
 	if (message.channel.type === 'DM') {
 		const embed = embeds.error('oh no no', `bot wont work in DM lol\n\nidk use it if you want: ${config.supportServer.invite}`)
 			.setImage('https://emoji.gg/assets/emoji/2446_cursed_flushed.png');
 		return message.reply({ embeds: [embed] });
 	}
-	if (!message.content.startsWith(prefix)) return;
-	const args = message.content.slice(prefix.length).trim().split(' ');
+	if (!message.content.startsWith(prefix) && !message.content.startsWith(prefix2)) return;
+	let args;
+	if (message.content.startsWith(prefix))
+		args = message.content.slice(prefix.length).trim().split(' ');
+	else
+		args = message.content.slice(prefix2.length).trim().split(' ');
 	const originalCommand = args.shift();
 	const command = originalCommand.toLowerCase();
 	switch (command) {
