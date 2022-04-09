@@ -334,7 +334,7 @@ bot.forcePlaySongFromSpotify = async (voiceChannel, title, artists, time, spotif
 		} else
 			queue = bot.musicPlayer.createQueue(guildId);
 		await queue.join(voiceChannel);
-		const song = await bot.musicPlayerUtils.search(`${title} ${artists} - Topic`, undefined, queue, 5);
+		const song = await bot.musicPlayerUtils.search(`${title} ${artists.split(';')[0]} (Audio)`, undefined, queue, 5);
 		if (!song || song.length == 0) {
 			// log na kanal ze nie znaleziono danej piosenki
 			return false;
