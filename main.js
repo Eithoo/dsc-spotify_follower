@@ -419,8 +419,42 @@ bot.followTimeoutEnd = async (guildId, final) => {
 	const embed_logs = embeds.followTimeoutEnd(following, 'logs', final);
 	// tutaj wysylanie na kanal z logami na danym serwerze
 
-
+	clearTimeout(following.timeout);
+	clearTimeout(following.finalTimeout);
+	clearInterval(following.refreshInterval);
 	bot.spotify_following.delete(guildId); // na koncu
+}
+
+bot.refreshCheck = async guildId => {
+	const following = bot.spotify_following.get(guildId);
+	if (!following) return false;
+	const user = following.following;
+	const presence = user.presence;
+	const spotify = findSpotifyInPresence(presence);
+	if (!spotify) return false;
+	const queue = bot.musicPlayer.getQueue(guildId);
+	if (!queue) return false;
+	if (!queue.isPlaying) return false;
+	if (queue.songs.length > 1) { // jesli przewinieto wiecej niz 1 piosenkę naraz - pomyslec czy nie lepiej by to bylo wsadzic w event presenceUpdate
+		const num = queue.songs.length - 1;
+		for (let i=0; i < num; i++) {
+			queue.skip();
+		}
+	}
+
+	const progressBar = queue.createProgressBar();
+	const progressTime = progressBar.times.split('/')[0];
+	const bot_currentSeconds = bot.musicPlayerUtils.timeToMs(progressTime)/1000;
+	const spotify_currentSeconds = Math.floor((new Date() - spotify.timestamps.start)/1000);
+	const timeDifference = spotify_currentSeconds - bot_currentSeconds;;
+	if (Math.abs(timeDifference) > 3.5) {
+		if (timeDifference > 0)
+			queue.seek(spotify_currentSeconds*1000 + 500);
+		else
+			queue.seek(spotify_currentSeconds*1000 - 500);
+	}
+
+
 }
 // zapytania w bazie zrobic w osobnym module
 

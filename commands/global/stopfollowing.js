@@ -50,6 +50,9 @@ module.exports = {
 		];
 		const translation = interaction.locale == 'pl' ? text[1] : text[0];
 		const embed = embeds.success(translation[0], translation[1]);
+		clearTimeout(state.timeout);
+		clearTimeout(state.finalTimeout);
+		clearInterval(state.refreshInterval);
 		bot.spotify_following.delete(interaction.guildId); // na koncu
 		return interaction.reply({ embeds: [embed] });
 

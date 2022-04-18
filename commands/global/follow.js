@@ -60,6 +60,7 @@ module.exports = {
 			textChannel: interaction.channel,
 			timeout: setTimeout(interaction.client.followTimeoutEnd, config.followTimeout, interaction.guildId),
 			finalTimeout: setTimeout(interaction.client.followTimeoutEnd, config.followTimeoutMAX, interaction.guildId, true),
+			refreshInterval: setInterval(interaction.client.refreshCheck, config.refreshInterval, interaction.guildId),
 			lang: interaction.locale
 		});
 
