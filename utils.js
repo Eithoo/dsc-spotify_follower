@@ -63,10 +63,18 @@ function toHHMMSS(secs) {
         .join(":")
 }
 
+function getContentFromCodeBlock(string) {
+	const regex = /```(?:js)?\n(.*?)\n```/gs;
+	const match = regex.exec(string);
+	if (match) return match[1].trim();
+	return false;
+}
+
 module.exports = {
 	hasAdminPermissions,
 	dli,
 	formatTime,
 	findSpotifyInPresence,
 	toHHMMSS,
+	getContentFromCodeBlock
 }

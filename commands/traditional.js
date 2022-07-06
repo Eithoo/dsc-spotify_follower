@@ -3,18 +3,18 @@ const colors = config.colors;
 const Discord = require('discord.js');
 const embeds = require('../embeds.js');
 const { inspect } = require('util');
-const { hasAdminPermissions } = require('../utils.js');
+const { hasAdminPermissions, getContentFromCodeBlock } = require('../utils.js');
 
 
 async function execute(message) {
 	const bot = message.client;
 	if (message.author.bot) return;
 	////////////////////////////
-	if (message.content == 'x') {
+/*	if (message.content == 'x') {
 		await bot.specialFunctions.sendCommandsToDiscord();
 		message.reply('ok');
 		return;
-	}
+	}*/
 	////////////////////////////
 //	const prefix = config.prefix;
 	const prefix = `<@!${bot.user.id}>`;
@@ -27,11 +27,12 @@ async function execute(message) {
 	if (!message.content.startsWith(prefix) && !message.content.startsWith(prefix2)) return;
 	let args;
 	if (message.content.startsWith(prefix))
-		args = message.content.slice(prefix.length).trim().split(' ');
+		args = message.content.slice(prefix.length).trim().split(/ |(```js\n)|(```\n)/g);
 	else
-		args = message.content.slice(prefix2.length).trim().split(' ');
+		args = message.content.slice(prefix2.length).trim().split(/ |(```js\n)|(```\n)/g);
+	args = args.filter(arg => arg != undefined);
 	const originalCommand = args.shift();
-	const command = originalCommand.toLowerCase();
+	const command = originalCommand.toLowerCase().trim();
 	switch (command) {
 		case '':
 		case 'help': {
@@ -80,14 +81,18 @@ async function execute(message) {
 				return message.reply({ embeds: [embeds.syntaxError(originalCommand, '<code>')] });
 			let evaled;
 			try {
-				evaled = await eval(args.join(' '));
+				const content = getContentFromCodeBlock(args.join(' '));
+				if (content)
+					evaled = await eval(`(async () => {${content}})()`);
+				else
+					evaled = await eval(`(async () => {${args.join(' ')}})()`);
 				console.log(evaled);
 				const result = inspect(evaled).length > 1900 ? inspect(evaled).substring(0, 1900) + '...' : inspect(evaled);
 				let evalEmbed = new Discord.MessageEmbed()
 					.setAuthor({ name: 'eval', iconURL: message.author.avatarURL() })
 					.setColor(colors.blue)
 					.setDescription(Discord.Formatters.codeBlock('js', result))
-					.addField('code:', args.join(' '))
+					.addField('code:', Discord.Formatters.codeBlock('js', content || args.join(' ')))
 					.setTimestamp()
 					.setFooter({ text: bot.user.username, iconURL: bot.user.avatarURL() });
 				message.channel.send({ embeds: [evalEmbed] });
