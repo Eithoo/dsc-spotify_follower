@@ -55,7 +55,7 @@ function createEmbeds(spotifyUsers, interaction, async, currentIndex, membersCou
 				firstContent = `${processingEmoji} ${currentIndex+1}/${membersCount} (${Math.round(currentIndex/membersCount*100)}%)\n\n${firstContent}`;
 			}
 			const content = index == 0 ? firstContent + '\n\n' + chunk.join('\n') : chunk.join('\n');
-			embeds.success(title, content, color);
+			return embeds.success(title, content, color);
 		});
 		return { success: true, embeds: embedsM };
 	}
