@@ -70,11 +70,18 @@ function getContentFromCodeBlock(string) {
 	return false;
 }
 
+function chunk(arr, size) {
+	return Array.from({ length: Math.ceil(arr.length / size) }, (v, i) =>
+		arr.slice(i * size, i * size + size)
+	);
+}
+
 module.exports = {
 	hasAdminPermissions,
 	dli,
 	formatTime,
 	findSpotifyInPresence,
 	toHHMMSS,
-	getContentFromCodeBlock
+	getContentFromCodeBlock,
+	chunk
 }

@@ -16,7 +16,8 @@ const config = {
 		paleRed: '#CD5C5C',
 		white: '#FFFFFE',
 		yellow: '#FFFF00',
-		discord: '#2f3136'
+		discord: '#2f3136',
+		pastelBrown: '#D4AD5D'
 	},
 	embedImages: {
 		success: 'https://i.imgur.com/ATS5JiO.png',
